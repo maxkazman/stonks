@@ -21,7 +21,6 @@ class scaler:
         self.unscaleColumn = uColumn
         if(len(xData.shape) == 1):
             xData = xData.reshape([1, 2])
-        print(len(xData[0]))
         for i in range(len(xData[0])):
             if (i == 0):
                 self.minMax[i, 0] = min(xData[:, i])
@@ -29,8 +28,6 @@ class scaler:
             else:
                 self.minMax = np.append(self.minMax, np.asarray([[min(xData[:, i]), max(xData[:, i])]]), axis=0)
     def scale(self, x):
-        print(len(x))
-        print(len(x[0]))
         for i in range(len(x)):
             for j in range(len(x[i])):
                 if ((self.minMax[j, 1] - self.minMax[j, 0]) != 0):
@@ -68,15 +65,14 @@ class modelBuilder:
         #create training data - TODO make it predict next 30 minutes every time
         trainLen = math.ceil(len(rawDataNum) * self.TRAIN_RATIO)
         self.scalerObject = scaler(rawDataNum, self.CLOSE_COLUMN)
-        print(self.scalerObject.minMax)
-        print(self.scalerObject.minMax[6,1])
+        print(rawDataNum.shape)
         scaled = self.scalerObject.scale(rawDataNum)
 
         train_data = scaled[0:trainLen, :]
         x = []
         y = []
 
-        for i in range(self.PERIOD, trainLen - self.Y_OFFSET): #make these constants
+        for i in range(self.PERIOD, trainLen - self.Y_OFFSET): 
             x.append(train_data[i-self.PERIOD:i, :])
             y.append(train_data[i + self.Y_OFFSET, self.CLOSE_COLUMN])
 
@@ -95,15 +91,14 @@ class modelBuilder:
         #train model
         self.model.fit(x, y, batch_size=1, epochs=self.EPOCHS)
 
-    def test(self, xTest):
+    def test(self, xTest): #change to predict
         
         #scale input data:
-        print(self.scalerObject.minMax)
-        print(self.TRAIN_RATIO)
+        xTest = np.asarray(xTest)
         for i in range(len(xTest)):
-            print(i)
             xTest[i] = self.scalerObject.scale(xTest[i])
         predictions = self.model.predict(np.asarray(xTest))
         predictions = self.scalerObject.unscale(predictions)
         return predictions
 
+    #new function for test(no args) which outputs a quantification of accuracy
