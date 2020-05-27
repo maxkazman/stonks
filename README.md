@@ -1,2 +1,0 @@
-# stonks
-Day trading bot

@@ -27,15 +27,14 @@ class scaler:
                 self.minMax[i, 0] = min(xData[:, i])
                 self.minMax[i, 1] = max(xData[:, i])
             else:
-                print(i)
                 self.minMax = np.append(self.minMax, np.asarray([[min(xData[:, i]), max(xData[:, i])]]), axis=0)
     def scale(self, x):
         print(len(x))
         print(len(x[0]))
         for i in range(len(x)):
-            print(len(x[i]))
             for j in range(len(x[i])):
-                x[i,j] = (x[i,j] - self.minMax[j, 0])/(self.minMax[j, 1] - self.minMax[j, 0])
+                if ((self.minMax[j, 1] - self.minMax[j, 0]) != 0):
+                    x[i,j] = (x[i,j] - self.minMax[j, 0])/(self.minMax[j, 1] - self.minMax[j, 0])
         return x
     def unscale(self, y):
         for i in range(len(y)): #assumes one-dimensional
@@ -50,8 +49,8 @@ class modelBuilder:
     TRAIN_RATIO = 0.8 #amount of data from the training set that is used to train
     EPOCHS = 1
     DATA_FILE = "aapl.csv"
-    model = Sequential()
-    scalerObject = scaler()
+    model = None
+    scalerObject = None
 
     def __init__(self, p, y, c, t, e, d):
         self.PERIOD = p
@@ -68,9 +67,10 @@ class modelBuilder:
 
         #create training data - TODO make it predict next 30 minutes every time
         trainLen = math.ceil(len(rawDataNum) * self.TRAIN_RATIO)
-        scalerObject = scaler(rawDataNum, self.CLOSE_COLUMN)
-        print(scalerObject.minMax)
-        scaled = scalerObject.scale(rawDataNum)
+        self.scalerObject = scaler(rawDataNum, self.CLOSE_COLUMN)
+        print(self.scalerObject.minMax)
+        print(self.scalerObject.minMax[6,1])
+        scaled = self.scalerObject.scale(rawDataNum)
 
         train_data = scaled[0:trainLen, :]
         x = []
@@ -83,6 +83,7 @@ class modelBuilder:
         x, y = np.array(x), np.array(y)
 
         #making model
+        self.model = Sequential()
         self.model.add(LSTM(50, return_sequences=True, input_shape=(x.shape[1], x.shape[2])))
         self.model.add(LSTM(50, return_sequences=False))
         self.model.add(Dense(25))
@@ -97,9 +98,12 @@ class modelBuilder:
     def test(self, xTest):
         
         #scale input data:
+        print(self.scalerObject.minMax)
+        print(self.TRAIN_RATIO)
         for i in range(len(xTest)):
+            print(i)
             xTest[i] = self.scalerObject.scale(xTest[i])
-        predictions = self.model.predict(xTest)
+        predictions = self.model.predict(np.asarray(xTest))
         predictions = self.scalerObject.unscale(predictions)
         return predictions
 

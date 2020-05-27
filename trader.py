@@ -27,7 +27,7 @@ rawData = pd.read_csv("aapl.csv", index_col=0)
 
 rawDataNum = rawData.values
 
-trainLen = math.ceil(len(rawData) * .8)
+trainLen = math.ceil(len(rawData) * .15)
 
 testData = rawDataNum[trainLen - 180: , :]
 xTest = []
@@ -36,18 +36,29 @@ for i in range(180, len(testData) - 15):
     xTest.append(testData[i-180:i, :])
 
 print(len(xTest))
-print(type(xTest[0]))
+print((xTest[0]))
+print(trainLen)
+print((len(yTest) - 15))
 
-testModel = modelBuilder(180, 15, 3, .8, 1, "aapl.csv")
+testModel = modelBuilder(180, 15, 3, .15, 1, "aapl.csv")
 
-yPredict = testModel.test(xTest)
+yPredict = testModel.test(xTest).flatten()
 
+print(yPredict.shape)
+
+print(yPredict)
 
 
 training = rawData.iloc[:, 0:trainLen]
-valid = rawData[['close','Volume']][trainLen:(len(yTest) - 15)]
+valid = rawData[['close','Volume']][trainLen:(len(yTest) + trainLen)]
 valid.columns = ['close', 'Predictions']
+
+print(valid.head())
+print(len(yPredict))
+print(len(yTest))
 valid['Predictions'] = yPredict
+
+print(valid.head())
 
 plt.figure(figsize=(100,25))
 plt.title('Model')
