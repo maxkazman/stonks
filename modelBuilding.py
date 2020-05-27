@@ -48,6 +48,7 @@ class modelBuilder:
     DATA_FILE = "aapl.csv"
     model = None
     scalerObject = None
+    error = None
 
     def __init__(self, p, y, c, t, e, d):
         self.PERIOD = p
@@ -91,7 +92,7 @@ class modelBuilder:
         #train model
         self.model.fit(x, y, batch_size=1, epochs=self.EPOCHS)
 
-    def test(self, xTest): #change to predict
+    def predict(self, xTest): #change to predict
         
         #scale input data:
         xTest = np.asarray(xTest)
@@ -101,4 +102,18 @@ class modelBuilder:
         predictions = self.scalerObject.unscale(predictions)
         return predictions
 
-    #new function for test(no args) which outputs a quantification of accuracy
+    #new function for test(self, no args) which outputs a quantification of accuracy
+    def test(self):
+        rawDataNum = pd.read_csv(self.DATA_FILE, index_col=0).values
+        testStart = math.ceil(len(rawDataNum) * self.TRAIN_RATIO) + self.PERIOD
+        if (testStart - len(rawDataNum) <= 0):
+            print("there isn't enough data left to test - it probably errored")
+        testData = rawDataNum[testStart - self.PERIOD:, :]
+        xTest = []
+        yTest = rawDataNum[testStart:(len(rawDataNum) - self.Y_OFFSET), self.CLOSE_COLUMN]
+        for i in range(self.PERIOD, len(testData) - self.Y_OFFSET):
+            xTest.append(testData[i-self.PERIOD:i, :])
+
+        yPredict = self.predict(xTest).flatten()
+
+        self.error = np.sqrt(np.mean((yPredict - yTest)**2))
