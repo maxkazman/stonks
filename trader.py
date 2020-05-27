@@ -10,7 +10,7 @@
 #print out how long this iteration took (hopefully less than a minute)
 
 import math
-import pandas_datareader as web
+# import pandas_datareader as web
 import numpy as np
 import pandas as pd
 from sklearn.preprocessing import MinMaxScaler
