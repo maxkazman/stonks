@@ -17,6 +17,7 @@ from sklearn.preprocessing import MinMaxScaler
 from keras.models import Sequential
 from keras.layers import Dense, LSTM
 import matplotlib.pyplot as plt
+import joblib
 
 from modelBuilding import scaler
 from modelBuilding import modelBuilder
@@ -24,7 +25,7 @@ from modelBuilding import modelBuilder
 PERIOD = 180
 OFFSET = 15
 CLOSE_COLUMN = 3
-TRAIN_RATIO = 0.15
+TRAIN_RATIO = 0.8
 EPOCHS = 1
 DATA_FILE = "aapl.csv"
 
@@ -43,23 +44,24 @@ def train_and_test_DRP(period=180, offset=15, column=3, train_ratio=0.8, epochs=
     all_predictions = [None] * 10
     all_predictions.clear()
     curr_predictions = all_predictions.copy()
-    # all_predictions =
 
     for i in range(len(model_list)):
-        model_list[i] = modelBuilder(p=period, y=1, c=i, t=train_ratio, e=epochs, d=data_path)
+        curr_model_path = "./DRP_Models/model_col_" + str(i) + ".sav"
+        model_list[i] = modelBuilder(p=period, y=1, c=i, t=train_ratio, e=epochs, d=data_path, model_path=curr_model_path)
+        model_list[i].test()
+        print("Model Error: {}".format(model_list[i].error))
 
     # train model for each column
     # TODO: define num trials
     for i in range(10):
         predictions = [0] * 10
         for j in range(len(model_list)):
-        # for i in range(len(model_list)):
-            # model_list[i].test()
             predictions[j] = (model_list[j].make_predictions_DRP(np.asarray(curr_predictions)))[0]
-            # print(model_list[i].error)
+
         print("Predictions: {}".format(predictions))
         all_predictions.append(predictions)
         curr_predictions.append(predictions)
+
         if (len(curr_predictions) > period):
             curr_predictions.pop(0)
 

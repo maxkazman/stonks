@@ -12,7 +12,8 @@ from sklearn.preprocessing import MinMaxScaler
 from keras.models import Sequential
 from keras.layers import Dense, LSTM
 import matplotlib.pyplot as plt
-
+import joblib
+import os.path
 
 class scaler:
     minMax = np.array([[0, 0]])
@@ -50,7 +51,7 @@ class modelBuilder:
     scalerObject = None
     error = None
 
-    def __init__(self, p, y, c, t, e, d):
+    def __init__(self, p, y, c, t, e, d, model_path="nothing"):
         self.PERIOD = p
         self.Y_OFFSET = y
         self.CLOSE_COLUMN = c
@@ -66,7 +67,7 @@ class modelBuilder:
         #create training data - TODO make it predict next 30 minutes every time
         trainLen = math.ceil(len(rawDataNum) * self.TRAIN_RATIO)
         self.scalerObject = scaler(rawDataNum, self.CLOSE_COLUMN)
-        print(rawDataNum.shape)
+        # print(rawDataNum.shape)
         scaled = self.scalerObject.scale(rawDataNum)
 
         train_data = scaled[0:trainLen, :]
@@ -89,8 +90,13 @@ class modelBuilder:
         #compile model
         self.model.compile(optimizer='adam', loss='mean_squared_error')
 
-        #train model
-        self.model.fit(x, y, batch_size=1, epochs=self.EPOCHS)
+        if os.path.isfile(model_path):
+            print("Loading model: {}".format(model_path))
+            self.model = joblib.load(model_path)
+        else:
+            print("Training model: {}".format(model_path))
+            self.model.fit(x, y, batch_size=1, epochs=self.EPOCHS)
+            joblib.dump(self.model, model_path)
 
     def predict(self, xTest): #change to predict
 
@@ -119,34 +125,22 @@ class modelBuilder:
         self.error = np.sqrt(np.mean((yPredict - yTest)**2))
 
     def make_predictions_DRP(self, prev_predictions):
-
         rawDataNum = pd.read_csv(self.DATA_FILE, index_col=0).values
         testStart = math.ceil(len(rawDataNum) * self.TRAIN_RATIO)
-        if (testStart - len(rawDataNum) >= 0):
-            print("there isn't enough data left to test - it probably errored")
-        testData = rawDataNum[testStart:testStart+self.PERIOD, :]
 
-        # print(prev_predictions)
-        # print(testData)
-        # print(len(prev_predictions))
+        if (testStart >= len(rawDataNum)):
+            print("there isn't enough data left to test - it probably errored")
+            return
+
+        testData = rawDataNum[testStart:testStart+self.PERIOD, :]
         if (len(prev_predictions) != 0):
             testData = np.concatenate((testData, prev_predictions))
             for i in range(len(prev_predictions)):
                 testData = np.delete(testData, 1, 0)
 
-        # print("Length: {}".format(len(testData)))
-
         xTest = []
-        # yTest = rawDataNum[testStart:(len(rawDataNum) - self.Y_OFFSET), self.CLOSE_COLUMN]
-
         for i in range(1):
             xTest.append(testData[i:i+self.PERIOD, :])
-
-        # print("XTest: {} Length: {}".format(xTest, len(xTest)))
-
         yPredict = self.predict(xTest).flatten()
 
-        # print("YPred: {} Length: {}".format(yPredict, len(yPredict)))
-        #
-        # self.error = np.sqrt(np.mean((yPredict - yTest)**2))
         return yPredict
