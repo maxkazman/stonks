@@ -73,7 +73,7 @@ class modelBuilder:
         x = []
         y = []
 
-        for i in range(self.PERIOD, trainLen - self.Y_OFFSET): 
+        for i in range(self.PERIOD, trainLen - self.Y_OFFSET):
             x.append(train_data[i-self.PERIOD:i, :])
             y.append(train_data[i + self.Y_OFFSET, self.CLOSE_COLUMN])
 
@@ -93,7 +93,7 @@ class modelBuilder:
         self.model.fit(x, y, batch_size=1, epochs=self.EPOCHS)
 
     def predict(self, xTest): #change to predict
-        
+
         #scale input data:
         xTest = np.asarray(xTest)
         for i in range(len(xTest)):
@@ -106,7 +106,7 @@ class modelBuilder:
     def test(self):
         rawDataNum = pd.read_csv(self.DATA_FILE, index_col=0).values
         testStart = math.ceil(len(rawDataNum) * self.TRAIN_RATIO) + self.PERIOD
-        if (testStart - len(rawDataNum) <= 0):
+        if (testStart - len(rawDataNum) >= 0):
             print("there isn't enough data left to test - it probably errored")
         testData = rawDataNum[testStart - self.PERIOD:, :]
         xTest = []
@@ -117,3 +117,36 @@ class modelBuilder:
         yPredict = self.predict(xTest).flatten()
 
         self.error = np.sqrt(np.mean((yPredict - yTest)**2))
+
+    def make_predictions_DRP(self, prev_predictions):
+
+        rawDataNum = pd.read_csv(self.DATA_FILE, index_col=0).values
+        testStart = math.ceil(len(rawDataNum) * self.TRAIN_RATIO)
+        if (testStart - len(rawDataNum) >= 0):
+            print("there isn't enough data left to test - it probably errored")
+        testData = rawDataNum[testStart:testStart+self.PERIOD, :]
+
+        # print(prev_predictions)
+        # print(testData)
+        # print(len(prev_predictions))
+        if (len(prev_predictions) != 0):
+            testData = np.concatenate((testData, prev_predictions))
+            for i in range(len(prev_predictions)):
+                testData = np.delete(testData, 1, 0)
+
+        # print("Length: {}".format(len(testData)))
+
+        xTest = []
+        # yTest = rawDataNum[testStart:(len(rawDataNum) - self.Y_OFFSET), self.CLOSE_COLUMN]
+
+        for i in range(1):
+            xTest.append(testData[i:i+self.PERIOD, :])
+
+        # print("XTest: {} Length: {}".format(xTest, len(xTest)))
+
+        yPredict = self.predict(xTest).flatten()
+
+        # print("YPred: {} Length: {}".format(yPredict, len(yPredict)))
+        #
+        # self.error = np.sqrt(np.mean((yPredict - yTest)**2))
+        return yPredict

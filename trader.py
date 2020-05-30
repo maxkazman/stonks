@@ -18,23 +18,55 @@ from keras.models import Sequential
 from keras.layers import Dense, LSTM
 import matplotlib.pyplot as plt
 
-
 from modelBuilding import scaler
 from modelBuilding import modelBuilder
 
+PERIOD = 180
+OFFSET = 15
+CLOSE_COLUMN = 3
+TRAIN_RATIO = 0.15
+EPOCHS = 1
+DATA_FILE = "aapl.csv"
+
 def train_and_test_IPP(data_path="aapl.csv"):
 
-    model = modelBuilder(180, 15, 3, .8, 1, data_path)
+    model = modelBuilder(180, 15, 3, .1, 1, data_path)
     model.test()
     print(model.error)
 
 
-def train_and_test_PP(data_path="aapl.csv"):
+# Dynamic Recursive Prediction - use predictions from other columns to predict future values
+def train_and_test_DRP(period=180, offset=15, column=3, train_ratio=0.8, epochs=1, data_path="aapl.csv"):
 
-    model = modelBuilder(180, 15, 3, .8, 1, data_path)
-    model.test()
-    print(model.error)
+    # TODO: change 10 to a variable
+    model_list = [None] * 10
+    all_predictions = [None] * 10
+    all_predictions.clear()
+    curr_predictions = all_predictions.copy()
+    # all_predictions =
 
+    for i in range(len(model_list)):
+        model_list[i] = modelBuilder(p=period, y=1, c=i, t=train_ratio, e=epochs, d=data_path)
+
+    # train model for each column
+    # TODO: define num trials
+    for i in range(10):
+        predictions = [0] * 10
+        for j in range(len(model_list)):
+        # for i in range(len(model_list)):
+            # model_list[i].test()
+            predictions[j] = (model_list[j].make_predictions_DRP(np.asarray(curr_predictions)))[0]
+            # print(model_list[i].error)
+        print("Predictions: {}".format(predictions))
+        all_predictions.append(predictions)
+        curr_predictions.append(predictions)
+        if (len(curr_predictions) > period):
+            curr_predictions.pop(0)
+
+    print("All Predictions: {}".format(all_predictions))
+
+    # TODO: use each model to predict one instance of each variable
+    # use this to predict future instances
 
 def graph_prediction(raw_data, train_len, y_test, y_pred):
 
@@ -54,8 +86,7 @@ def graph_prediction(raw_data, train_len, y_test, y_pred):
     plt.show()
 
 def main():
-
-    train_and_test_IPP()
+    train_and_test_DRP(period=PERIOD, offset=OFFSET, column=CLOSE_COLUMN, train_ratio=TRAIN_RATIO, epochs=EPOCHS, data_path=DATA_FILE)
 
 if __name__ == "__main__":
     main()
